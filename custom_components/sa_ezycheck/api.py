@@ -17,7 +17,14 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from xml.etree.ElementTree import Element
 
-PLATE_PATTERN = re.compile(r"^[A-Z0-9]{1,7}$")
+# South Australian plate rules, applied to a normalised plate (upper case, no spaces):
+# - custom: letters only, or letters and numbers, 1 to 7 characters. This also covers
+#   the Japanese custom (up to 6, at least one letter), personalised (letters then at
+#   least one number, 6) and classic (three letters from R, S or U, then three
+#   numbers) rules, and every modern standard format (S000AAA, AAA000, S00AAA, ...).
+# - pre-1966 plates: numbers only, 5 or 6 digits.
+# - metropolitan taxis: TAXI followed by 3 or 4 numbers.
+_PLATE_RULES = re.compile(r"(?=.*[A-Z])[A-Z0-9]{1,7}|[0-9]{5,6}|TAXI[0-9]{3,4}")
 
 # Output key -> XML element, for the values the integration exposes.
 _TEXT_FIELDS = {
@@ -80,8 +87,13 @@ class SaEzycheckData:
 
 
 def normalise_plate(value: str) -> str:
-    """Return the plate upper-cased, without spaces or hyphens."""
-    return re.sub(r"[\s-]", "", value).upper()
+    """Return the plate upper-cased, without the spaces, hyphens or dots plates show."""
+    return re.sub(r"[\s.\-·]", "", value).upper()
+
+
+def is_valid_plate(plate: str) -> bool:
+    """Return whether a normalised plate follows a South Australian plate format."""
+    return _PLATE_RULES.fullmatch(plate) is not None
 
 
 def _text(record: Element, tag: str) -> str | None:

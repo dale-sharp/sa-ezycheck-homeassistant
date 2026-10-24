@@ -39,9 +39,9 @@ Adding the integration asks for one thing:
 
 | Field | Meaning |
 |---|---|
-| Plate number | The vehicle's plate, letters and numbers only (1 to 7 characters). Case, spaces and hyphens are ignored, so `s123 abc` is stored as `S123ABC`. |
+| Plate number | The vehicle's South Australian plate. Case, spaces, hyphens and dots are ignored, so `s123 abc` is stored as `S123ABC`. Accepted formats are custom plates (letters, or letters and numbers, up to 7 characters, including Japanese, personalised and classic plates and every modern standard format), pre-1966 numbers-only plates (5 or 6 digits) and metropolitan taxi plates (`TAXI` plus 3 or 4 numbers). |
 
-The plate is checked against the service before the entry is created. Add the integration once for each vehicle.
+The plate's format is checked first, then the service confirms it before the entry is created. Add the integration once for each vehicle.
 
 ### Reconfiguration
 

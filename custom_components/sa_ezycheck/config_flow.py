@@ -29,10 +29,10 @@ else:
         import voluptuous as vol
 
 from .api import (
-    PLATE_PATTERN,
     SaEzycheckClient,
     SaEzycheckError,
     SaEzycheckInvalidPlateError,
+    is_valid_plate,
     normalise_plate,
     parse_payload,
 )
@@ -76,7 +76,7 @@ def _interval_schema(scan_interval: int) -> vol.Schema:
 
 async def _async_validate_plate(hass: HomeAssistant, plate: str) -> str | None:
     """Check the plate with the service; return an error code, or None if valid."""
-    if not PLATE_PATTERN.match(plate):
+    if not is_valid_plate(plate):
         return "invalid_plate"
     client = SaEzycheckClient(async_get_clientsession(hass))
     try:

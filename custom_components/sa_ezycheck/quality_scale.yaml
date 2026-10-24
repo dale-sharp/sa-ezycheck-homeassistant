@@ -1,0 +1,194 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration registers no actions.
+  appropriate-polling:
+    status: done
+    comment: >-
+      Registration details change a few times a year, so the default is 12 hours with a
+      60 minute floor, configurable in the options flow. The days-until-expiry sensor and
+      the calendars need no extra requests.
+  brands:
+    status: todo
+    comment: >-
+      brand/icon.png is still a generated placeholder. Replace it with real artwork
+      before the first release.
+  common-modules:
+    status: done
+    comment: The coordinator is in coordinator.py and the base entity in entity.py.
+  config-flow:
+    status: done
+    comment: The plate is entered in the UI, with labels and descriptions in strings.json.
+  config-flow-test-coverage:
+    status: done
+    comment: tests/test_config_flow.py covers every step, error and recovery path.
+  dependency-transparency:
+    status: exempt
+    comment: >-
+      There are no manifest requirements. The integration uses aiohttp from Home
+      Assistant and the standard library XML parser.
+  docs-actions:
+    status: exempt
+    comment: The integration has no actions.
+  docs-conditions:
+    status: exempt
+    comment: The integration has no conditions.
+  docs-high-level-description:
+    status: done
+    comment: The README introduction says what the integration reads and why.
+  docs-installation-instructions:
+    status: done
+    comment: The README covers requirements and both HACS and manual installation.
+  docs-removal-instructions:
+    status: done
+    comment: The README has a Removal section.
+  docs-triggers:
+    status: exempt
+    comment: The integration has no triggers.
+  entity-event-setup:
+    status: done
+    comment: >-
+      The days-until-expiry sensor schedules a midnight refresh when added and removes
+      it with async_on_remove. Other entities subscribe to nothing beyond the
+      coordinator.
+  entity-unique-id:
+    status: done
+    comment: Every entity ID is built from the entry ID, device and entity key.
+  has-entity-name:
+    status: done
+    comment: The base entity sets has_entity_name and every entity has a translated name.
+  runtime-data:
+    status: done
+    comment: The coordinator is stored in ConfigEntry.runtime_data.
+  test-before-configure:
+    status: done
+    comment: >-
+      The config flow checks the plate format and then asks the service to confirm it
+      before creating the entry.
+  test-before-setup:
+    status: done
+    comment: >-
+      async_config_entry_first_refresh raises ConfigEntryNotReady when the service cannot
+      be reached.
+  unique-config-entry:
+    status: done
+    comment: The normalised plate is the unique ID, so a vehicle can be added only once.
+
+  # Silver
+  action-exceptions:
+    status: exempt
+    comment: The integration has no actions.
+  config-entry-unloading:
+    status: done
+    comment: >-
+      async_unload_entry unloads the platforms, and the options flow reloads the entry
+      when options change.
+  docs-configuration-parameters:
+    status: done
+    comment: The README describes the scan interval option.
+  docs-installation-parameters:
+    status: done
+    comment: The README describes the plate field.
+  entity-unavailable:
+    status: done
+    comment: Entities become unavailable when an update fails, covered by tests.
+  integration-owner:
+    status: done
+    comment: manifest.json lists the codeowner.
+  log-when-unavailable:
+    status: done
+    comment: >-
+      The coordinator base class logs the lost connection once and the recovery once; the
+      integration adds no logging per poll.
+  parallel-updates:
+    status: done
+    comment: Each platform sets PARALLEL_UPDATES to 0 because the coordinator serialises updates.
+  reauthentication-flow:
+    status: exempt
+    comment: The service needs no credentials.
+  test-coverage:
+    status: done
+    comment: Every module is at 100% coverage.
+
+  # Gold
+  devices:
+    status: done
+    comment: >-
+      Each plate is a device named after the plate, with the vehicle make as the
+      manufacturer and the body type as the model.
+  diagnostics:
+    status: done
+    comment: Diagnostics redact the plate, the entry title, the device name and the VIN digits.
+  discovery:
+    status: exempt
+    comment: The source is a fixed public endpoint; there is nothing to discover on the network.
+  discovery-update-info:
+    status: exempt
+    comment: The integration has no discovery.
+  docs-data-update:
+    status: done
+    comment: The README explains how data is updated.
+  docs-examples:
+    status: done
+    comment: The README has an example automation.
+  docs-known-limitations:
+    status: done
+    comment: The README lists known limitations, including the undocumented endpoint.
+  docs-supported-devices:
+    status: exempt
+    comment: The integration is a web service lookup with no physical devices.
+  docs-supported-functions:
+    status: done
+    comment: The README lists every sensor, binary sensor and calendar.
+  docs-troubleshooting:
+    status: done
+    comment: The README covers debug logging, diagnostics and common failures.
+  docs-use-cases:
+    status: done
+    comment: The README introduction describes the use cases.
+  dynamic-devices:
+    status: exempt
+    comment: Each config entry is one vehicle, so devices never appear after setup.
+  entity-category:
+    status: done
+    comment: Plate type, premium class and the masked VIN are diagnostic entities.
+  entity-device-class:
+    status: done
+    comment: Dates, durations and problem flags use device classes where one fits.
+  entity-disabled-by-default:
+    status: done
+    comment: The masked VIN, inspection expired flag and inspection calendar are disabled by default.
+  entity-translations:
+    status: done
+    comment: Every entity has a translation key and a name in strings.json.
+  exception-translations:
+    status: done
+    comment: Update failures use translated messages from strings.json.
+  icon-translations:
+    status: done
+    comment: Icons are defined in icons.json, not in the entity classes.
+  reconfiguration-flow:
+    status: done
+    comment: The reconfigure flow changes the plate without removing the entry.
+  repair-issues:
+    status: done
+    comment: A repair issue is raised after three consecutive failed updates and cleared on success.
+  stale-devices:
+    status: exempt
+    comment: >-
+      Each entry has a single device that is removed with the entry. Reconfiguring the
+      plate renames the same device, which is covered by a test.
+
+  # Platinum
+  async-dependency:
+    status: done
+    comment: The client uses aiohttp, and parsing runs in the executor.
+  inject-websession:
+    status: done
+    comment: The client takes Home Assistant's shared web session.
+  strict-typing:
+    status: done
+    comment: >-
+      The code is fully typed and checked with ty in CI-equivalent settings. The project
+      uses ty instead of mypy, consistent with its uv and ruff toolchain.

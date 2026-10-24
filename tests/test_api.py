@@ -12,6 +12,7 @@ from custom_components.sa_ezycheck.api import (
     SaEzycheckClient,
     SaEzycheckConnectionError,
     SaEzycheckInvalidPlateError,
+    is_valid_plate,
     normalise_plate,
     parse_payload,
 )
@@ -140,10 +141,64 @@ def test_parse_payload_rejects_unexpected_responses(raw: str) -> None:
 
 @pytest.mark.parametrize(
     ("value", "expected"),
-    [("abc123", "ABC123"), (" s 123-abc ", "S123ABC"), ("", "")],
+    [
+        ("abc123", "ABC123"),
+        (" s 123-abc ", "S123ABC"),
+        ("S123·ABC", "S123ABC"),
+        ("s.123.abc", "S123ABC"),
+        ("", ""),
+    ],
 )
 def test_normalise_plate(value: str, expected: str) -> None:
     assert normalise_plate(value) == expected
+
+
+@pytest.mark.parametrize(
+    "plate",
+    [
+        "S",  # custom: one letter
+        "ABCDEFG",  # custom: seven letters
+        "A1B2C3D",  # custom: letters and numbers, seven characters
+        "JAPAN1",  # Japanese custom: up to six, at least one letter
+        "ABC123",  # personalised and 1966 standard
+        "AB1234",  # personalised
+        "ABCD12",  # personalised
+        "RAA123",  # classic
+        "SUR999",  # classic
+        "S123ABC",  # standard since 2008
+        "S12ABC",  # motorcycle since 2008
+        "AA123A",  # premium
+        "SB00AA",  # heavy vehicle
+        "RA123",  # motorcycle, five characters
+        "12345",  # pre-1966, five digits
+        "123456",  # pre-1966, six digits
+        "TAXI12",  # also a valid custom plate
+        "TAXI123",  # metropolitan taxi
+        "TAXI1234",  # metropolitan taxi, eight characters
+    ],
+)
+def test_is_valid_plate_accepts_the_plate_formats(plate: str) -> None:
+    assert is_valid_plate(plate)
+
+
+@pytest.mark.parametrize(
+    "plate",
+    [
+        "",  # nothing
+        "1",  # custom plates need a letter
+        "1234",  # too short for a numbers-only plate
+        "1234567",  # numbers-only plates stop at six digits
+        "ABCDEFGH",  # custom plates stop at seven characters
+        "TAXI12345",  # nine characters
+        "AB-123",  # separators are removed by normalise_plate, not accepted here
+        "ABC 123",
+        "ABC12!",
+        "abc123",  # must already be upper case
+        "ÄBC123",
+    ],
+)
+def test_is_valid_plate_rejects_everything_else(plate: str) -> None:
+    assert not is_valid_plate(plate)
 
 
 async def test_fetch_raw_returns_the_response_body(
