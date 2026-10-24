@@ -1,7 +1,6 @@
 {
   "domain": "sa_ezycheck",
   "name": "SA EzyCheck",
-  "categories": ["vehicles_transport.cars_evs", "local_services"],
   "codeowners": ["@dale-sharp"],
   "config_flow": true,
   "dependencies": [],
