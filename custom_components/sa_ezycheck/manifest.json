@@ -1,0 +1,14 @@
+{
+  "domain": "sa_ezycheck",
+  "name": "SA EzyCheck",
+  "codeowners": ["@dale-sharp"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/dale-sharp/sa-ezycheck-homeassistant#readme",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/dale-sharp/sa-ezycheck-homeassistant/issues",
+  "loggers": ["custom_components.sa_ezycheck"],
+  "requirements": [],
+  "version": "0.1.0"
+}

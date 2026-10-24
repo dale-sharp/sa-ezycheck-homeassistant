@@ -1,0 +1,58 @@
+{
+  "entity": {
+    "sensor": {
+      "expiry_date": {
+        "default": "mdi:calendar-clock"
+      },
+      "days_until_expiry": {
+        "default": "mdi:timer-sand"
+      },
+      "inspection_due_date": {
+        "default": "mdi:car-wrench"
+      },
+      "make": {
+        "default": "mdi:car"
+      },
+      "body_type": {
+        "default": "mdi:car-side"
+      },
+      "primary_colour": {
+        "default": "mdi:palette"
+      },
+      "ctp_insurer": {
+        "default": "mdi:shield-car"
+      },
+      "plate_type": {
+        "default": "mdi:card-text"
+      },
+      "premium_class": {
+        "default": "mdi:cash"
+      },
+      "masked_vin": {
+        "default": "mdi:identifier"
+      }
+    },
+    "binary_sensor": {
+      "registered": {
+        "default": "mdi:file-certificate"
+      },
+      "inspection_expired": {
+        "default": "mdi:car-wrench"
+      },
+      "incident": {
+        "default": "mdi:car-emergency"
+      },
+      "pending_suspension": {
+        "default": "mdi:car-off"
+      }
+    },
+    "calendar": {
+      "registration": {
+        "default": "mdi:calendar-clock"
+      },
+      "inspection": {
+        "default": "mdi:car-wrench"
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    target-branch: "main"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    assignees:
+      - dale-sharp
+    groups:
+      # homeassistant, pytest-homeassistant-custom-component, aiohttp,
+      # pytest-asyncio, and pytest are structurally coupled:
+      # pytest-homeassistant-custom-component pins exact homeassistant,
+      # aiohttp, pytest-asyncio, and pytest versions. Bumping any one of them
+      # alone produces an unsatisfiable `uv lock`; bundle them so Dependabot
+      # proposes one resolvable update instead of several that each fail
+      # independently.
+      #
+      # homeassistant pins dozens of dependencies exactly; not all of them are
+      # listed here preemptively, only ones Dependabot has actually attempted
+      # to bump in isolation and failed on. Add the next one here when it
+      # happens rather than trying to enumerate the whole set up front.
+      home-assistant-test-harness:
+        patterns:
+          - "homeassistant"
+          - "pytest-homeassistant-custom-component"
+          - "aiohttp"
+          - "pytest-asyncio"
+          - "pytest"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "main"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    cooldown:
+      default-days: 3
+    assignees:
+      - dale-sharp

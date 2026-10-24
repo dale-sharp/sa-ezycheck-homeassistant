@@ -1,0 +1,39 @@
+# Compiled artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+*.zip
+
+# Environments
+.venv/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+coverage.json
+coverage.xml
+htmlcov/
+
+# Ruff cache
+.ruff_cache/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Home Assistant dev config
+config/*
+!config/configuration.yaml
+
+# macOS
+.DS_Store
+
+# Local-only working documents, API samples and tooling state
+docs/
+reference/
+.superpowers/
+.claude/

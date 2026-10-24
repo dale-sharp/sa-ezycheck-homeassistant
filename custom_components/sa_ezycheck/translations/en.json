@@ -1,0 +1,118 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a vehicle",
+        "description": "Track South Australian vehicle registration expiry, CTP insurer, inspection status and more from South Australia's public registration check.",
+        "data": {
+          "plate": "Plate number"
+        },
+        "data_description": {
+          "plate": "The vehicle's South Australian number plate, letters and numbers only (for example S123ABC). Spaces and case are ignored."
+        }
+      },
+      "reconfigure": {
+        "title": "Change the plate number",
+        "description": "Correct the plate number for this vehicle.",
+        "data": {
+          "plate": "Plate number"
+        },
+        "data_description": {
+          "plate": "The vehicle's South Australian number plate, letters and numbers only. Spaces and case are ignored."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This plate is already configured.",
+      "reconfigure_successful": "The plate number was updated."
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the registration check service. Check your network connection and try again.",
+      "invalid_plate": "The registration check did not accept this plate number. Check it and try again."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SA EzyCheck options",
+        "description": "Change how SA EzyCheck polls for data.",
+        "data": {
+          "scan_interval_minutes": "Scan interval (minutes)"
+        },
+        "data_description": {
+          "scan_interval_minutes": "How often to check for new data, in minutes. Registration details rarely change, so the default is twelve hours."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Could not fetch data from the registration check service: {error}"
+    },
+    "invalid_plate": {
+      "message": "The registration check no longer accepts the plate {plate}."
+    }
+  },
+  "issues": {
+    "persistent_fetch_failure": {
+      "title": "SA EzyCheck is unreachable",
+      "description": "SA EzyCheck has failed to fetch data for {threshold} consecutive attempts for \"{entry_title}\". This may be a temporary outage or a network problem. No action is needed if it resolves on its own; if it persists, check your network connection and the service's status."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "expiry_date": {
+        "name": "Registration expiry"
+      },
+      "days_until_expiry": {
+        "name": "Days until expiry"
+      },
+      "inspection_due_date": {
+        "name": "Inspection due"
+      },
+      "make": {
+        "name": "Make"
+      },
+      "body_type": {
+        "name": "Body type"
+      },
+      "primary_colour": {
+        "name": "Colour"
+      },
+      "ctp_insurer": {
+        "name": "CTP insurer"
+      },
+      "plate_type": {
+        "name": "Plate type"
+      },
+      "premium_class": {
+        "name": "Premium class"
+      },
+      "masked_vin": {
+        "name": "Masked VIN"
+      }
+    },
+    "binary_sensor": {
+      "registered": {
+        "name": "Registered"
+      },
+      "inspection_expired": {
+        "name": "Inspection expired"
+      },
+      "incident": {
+        "name": "Incident"
+      },
+      "pending_suspension": {
+        "name": "Pending suspension"
+      }
+    },
+    "calendar": {
+      "registration": {
+        "name": "Registration"
+      },
+      "inspection": {
+        "name": "Inspection"
+      }
+    }
+  }
+}

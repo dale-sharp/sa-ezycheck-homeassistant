@@ -1,0 +1,8 @@
+{
+  "name": "sa-ezycheck-homeassistant",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "dev",
+  "postCreateCommand": "uv sync"
+}

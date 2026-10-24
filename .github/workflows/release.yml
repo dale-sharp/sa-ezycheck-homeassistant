@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+
+permissions: {}
+
+jobs:
+  release:
+    name: Package and attach release asset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to upload release assets
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify version matches tag
+        # Ensures the version in manifest.json matches the Git tag (e.g. v1.2.3 -> 1.2.3)
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"   # strip leading 'v'
+          MANIFEST_VERSION=$(python3 -c "import json; print(json.load(open('custom_components/sa_ezycheck/manifest.json'))['version'])")
+          if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "Tag '$TAG' does not match manifest version '$MANIFEST_VERSION'"
+            exit 1
+          fi
+          echo "Version check passed: $VERSION"
+
+      - name: Create release zip
+        # HACS installs from a zip of the integration files at the root
+        run: |
+          cd custom_components/sa_ezycheck
+          zip -r ../../sa_ezycheck.zip .
+          cd ../..
+          echo "Created sa_ezycheck.zip"
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: sa_ezycheck.zip

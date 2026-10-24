@@ -1,0 +1,36 @@
+# Based on https://github.com/home-assistant/core/blob/dev/pyproject.toml
+
+target-version = "py314"
+
+[lint]
+select = ["ALL"]
+
+ignore = [
+    "ANN401",  # Dynamically typed expressions (typing.Any) - used legitimately in HA patterns
+    "CPY001",  # Missing copyright notice - add a per-file header and remove this to enforce it
+    "D203",    # no-blank-line-before-class (conflicts with formatter)
+    "D212",    # multi-line-summary-first-line (conflicts with formatter)
+    "COM812",  # missing-trailing-comma (conflicts with formatter)
+    "ISC001",  # single-line-implicit-string-concatenation (conflicts with formatter)
+    # Exception message style - HA core uses plain string literals throughout
+    "EM101",   # raw-string-in-exception
+    "EM102",   # f-string-in-exception
+    "TRY003",  # raise-vanilla-args
+]
+
+[lint.per-file-ignores]
+# Tests can use assert, magic values, don't need full docstrings or type annotations,
+# may access private members for state inspection, have long names, and declare
+# pytest fixtures that are used implicitly (not referenced in the body).
+"tests/**/*.py" = ["S101", "PLR2004", "D", "ANN", "ARG", "SLF001", "E501"]
+# Standalone helper scripts are not part of an importable package.
+"scripts/*.py" = ["INP001"]
+
+[lint.flake8-pytest-style]
+fixture-parentheses = false
+
+[lint.pyupgrade]
+keep-runtime-typing = true
+
+[lint.mccabe]
+max-complexity = 25
