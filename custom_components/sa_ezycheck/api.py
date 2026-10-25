@@ -1,4 +1,6 @@
-"""API client and data models for the integration."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Client and XML parser for the SA registration expiry check endpoint."""
 
 from __future__ import annotations
 
@@ -119,8 +121,7 @@ def _parse_flag(value: str | None) -> bool | None:
 
 
 def _select_record(records: list[Element]) -> Element:
-    """
-    Pick the vehicle that currently holds the plate.
+    """Pick the vehicle that currently holds the plate.
 
     A plate that moved between vehicles is reported once per vehicle; the registered
     one has a real expiry date, and the latest date wins when several do.
@@ -136,8 +137,7 @@ def _select_record(records: list[Element]) -> Element:
 
 
 def parse_payload(raw: str, plate: str) -> SaEzycheckData:
-    """
-    Parse the raw API response.
+    """Parse the raw API response.
 
     Synchronous and potentially CPU-bound: call it through
     ``hass.async_add_executor_job`` so it never runs on the event loop.

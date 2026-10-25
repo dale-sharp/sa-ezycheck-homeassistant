@@ -1,4 +1,6 @@
-"""Config flow, reconfigure flow and options flow."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Plate entry, plate reconfiguration and scan interval options flows."""
 
 from __future__ import annotations
 

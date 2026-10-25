@@ -1,3 +1,5 @@
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Tests for the sensor and binary sensor platforms: states, attributes and the daily refresh."""
 
 from __future__ import annotations

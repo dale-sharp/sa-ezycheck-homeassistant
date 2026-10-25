@@ -1,4 +1,6 @@
-"""Constants for the integration."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Domain, endpoint URL and scan interval limits for SA EzyCheck."""
 
 from __future__ import annotations
 

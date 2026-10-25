@@ -1,3 +1,5 @@
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Structural tests for the translation and icon JSON files."""
 
 from __future__ import annotations

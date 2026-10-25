@@ -1,4 +1,6 @@
-"""Binary sensor platform."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Binary sensors for registration, inspection, incident and suspension flags."""
 
 from __future__ import annotations
 
