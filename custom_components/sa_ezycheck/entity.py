@@ -1,4 +1,6 @@
-"""Base entity for the integration."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Base entity that attaches every entity to the vehicle's device."""
 
 from __future__ import annotations
 

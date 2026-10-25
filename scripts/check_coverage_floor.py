@@ -1,5 +1,6 @@
-"""
-Fail CI if any module falls below the per-module coverage floor in CONTRIBUTING.md.
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Fail CI if any module falls below the per-module coverage floor in CONTRIBUTING.md.
 
 pytest-cov/coverage.py only supports a single overall `fail_under` threshold; it has no
 built-in way to gate an individual file's coverage percentage. CONTRIBUTING.md documents

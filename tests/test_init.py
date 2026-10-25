@@ -1,3 +1,5 @@
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Tests for __init__.py: entry setup, unload and retry behaviour."""
 
 from __future__ import annotations

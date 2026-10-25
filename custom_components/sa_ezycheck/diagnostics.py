@@ -1,4 +1,6 @@
-"""Diagnostics support."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Diagnostics download with the plate, VIN digits and vehicle name redacted."""
 
 from __future__ import annotations
 

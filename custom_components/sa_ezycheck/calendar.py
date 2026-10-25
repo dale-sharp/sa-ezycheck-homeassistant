@@ -1,4 +1,6 @@
-"""Calendar platform."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""All-day calendar events for the registration expiry and inspection due dates."""
 
 from __future__ import annotations
 

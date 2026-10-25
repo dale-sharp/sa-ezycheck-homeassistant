@@ -1,3 +1,5 @@
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Tests for api.py: payload parsing and the HTTP client."""
 
 from __future__ import annotations

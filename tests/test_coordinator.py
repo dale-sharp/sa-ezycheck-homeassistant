@@ -1,3 +1,5 @@
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Tests for coordinator.py: parsing, update interval and the repair issue."""
 
 from __future__ import annotations

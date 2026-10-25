@@ -1,4 +1,6 @@
-"""Sensor platform."""
+# Copyright (C) 2026 dale-sharp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Sensors for expiry date, days until expiry, inspection date and vehicle details."""
 
 from __future__ import annotations
 
