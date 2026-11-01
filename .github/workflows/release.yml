@@ -8,19 +8,37 @@ on:
 permissions: {}
 
 jobs:
+  # Packaging only starts once the commit passes the same checks as a pull request.
+  lint:
+    name: Lint
+    permissions:
+      contents: read   # needed to check out the code
+    uses: ./.github/workflows/lint.yml
+
+  validate:
+    name: Validate
+    permissions:
+      contents: read   # needed to check out the code
+    uses: ./.github/workflows/validate.yml
+
   release:
     name: Package and attach release asset
+    needs: [lint, validate]
     runs-on: ubuntu-latest
     permissions:
       contents: write   # needed to upload release assets
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Verify version matches tag
         # Ensures the version in manifest.json matches the Git tag (e.g. v1.2.3 -> 1.2.3)
+        env:
+          # Read from the environment, not pasted into the script: a tag name is free text.
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"   # strip leading 'v'
           MANIFEST_VERSION=$(python3 -c "import json; print(json.load(open('custom_components/sa_ezycheck/manifest.json'))['version'])")
           if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
