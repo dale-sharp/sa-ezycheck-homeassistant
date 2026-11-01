@@ -8,6 +8,7 @@ import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
+from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -26,6 +27,7 @@ from .const import (
     ISSUE_PERSISTENT_FETCH_FAILURE,
     OPTION_SCAN_INTERVAL_MINUTES,
     PERSISTENT_FETCH_FAILURE_THRESHOLD,
+    persistent_fetch_failure_issue_id,
 )
 
 if TYPE_CHECKING:
@@ -68,6 +70,14 @@ class SaEzycheckCoordinator(DataUpdateCoordinator[SaEzycheckData]):
                 parse_payload, raw, self._plate
             )
         except SaEzycheckInvalidPlateError as err:
+            if self.data is None:
+                # Still no data, so this is the setup. Home Assistant would retry it
+                # forever, but a plate the service refuses will not start working.
+                raise ConfigEntryError(
+                    translation_domain=DOMAIN,
+                    translation_key="invalid_plate",
+                    translation_placeholders={"plate": self._plate},
+                ) from err
             self._register_failure()
             raise UpdateFailed(
                 translation_domain=DOMAIN,
@@ -92,7 +102,7 @@ class SaEzycheckCoordinator(DataUpdateCoordinator[SaEzycheckData]):
             ir.async_create_issue(
                 self.hass,
                 DOMAIN,
-                f"{ISSUE_PERSISTENT_FETCH_FAILURE}_{self.config_entry.entry_id}",
+                persistent_fetch_failure_issue_id(self.config_entry.entry_id),
                 is_fixable=False,
                 severity=ir.IssueSeverity.WARNING,
                 translation_key=ISSUE_PERSISTENT_FETCH_FAILURE,
@@ -104,10 +114,11 @@ class SaEzycheckCoordinator(DataUpdateCoordinator[SaEzycheckData]):
 
     def _clear_failure(self) -> None:
         """Reset the failure counter and clear any repair issue after a success."""
-        if self._consecutive_failures > 0:
-            ir.async_delete_issue(
-                self.hass,
-                DOMAIN,
-                f"{ISSUE_PERSISTENT_FETCH_FAILURE}_{self.config_entry.entry_id}",
-            )
-            self._consecutive_failures = 0
+        self._consecutive_failures = 0
+        # Deleting an issue that does not exist is not an error. It is done after every
+        # success because an issue outlives the coordinator that raised it (a reload).
+        ir.async_delete_issue(
+            self.hass,
+            DOMAIN,
+            persistent_fetch_failure_issue_id(self.config_entry.entry_id),
+        )

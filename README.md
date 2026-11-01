@@ -125,7 +125,9 @@ automation:
 
 **"The registration check did not accept this plate number"**: check the plate. The service rejects plates it does not recognise.
 
-**Entities unavailable**: the service could not be reached. After three failed updates in a row a repair issue appears, and it clears itself when an update succeeds.
+**Failed to set up, "The registration check no longer accepts the plate"**: the service stopped recognising a plate it accepted before, and setup is not retried. Correct the plate with **Reconfigure**, or reload the entry if you think the service made a mistake.
+
+**Entities unavailable**: the service could not be reached, or answered in a format the integration does not understand, such as a changed date format. After three failed updates in a row a repair issue appears, and it clears itself when an update succeeds.
 
 **Debug logging**: add this to `configuration.yaml`, restart, then reproduce the problem:
 
@@ -135,7 +137,7 @@ logger:
     custom_components.sa_ezycheck: debug
 ```
 
-**Diagnostics**: on **Settings > Devices & services > SA EzyCheck**, open the three-dot menu of the entry and choose **Download diagnostics**. The plate, title and VIN digits are redacted.
+**Diagnostics**: on **Settings > Devices & services > SA EzyCheck**, open the three-dot menu of the entry and choose **Download diagnostics**. The plate, title and VIN digits are redacted, including in the last error message.
 
 ## Removal
 

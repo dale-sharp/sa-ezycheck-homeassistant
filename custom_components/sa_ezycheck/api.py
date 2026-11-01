@@ -38,10 +38,14 @@ _TEXT_FIELDS = {
     "ctp_insurer": "ctpInsurer",
     "masked_vin": "maskedVin",
 }
+# Optional dates: one that cannot be read is unknown. The expiry date is read on its own
+# (see ``_parse_expiry``) because it decides whether the vehicle is registered.
 _DATE_FIELDS = {
-    "expiry_date": "expiryDate",
     "inspection_due_date": "inspectionDueDate",
 }
+# What the service reports as the expiry date of a vehicle without a current
+# registration.
+_UNREGISTERED = "UNREGISTERED"
 _FLAG_FIELDS = {
     "inspection_expired": "inspectionExpired",
     "incident": "incidentInd",
@@ -113,6 +117,20 @@ def _parse_date(value: str | None) -> date | None:
         return None
 
 
+def _parse_expiry(value: str | None) -> date | None:
+    """Parse the expiry date; None means the vehicle is unregistered.
+
+    Anything that is neither a date nor the UNREGISTERED marker is an error, so a change
+    in the service's date format is never mistaken for an unregistered vehicle.
+    """
+    if value == _UNREGISTERED:
+        return None
+    if (expiry := _parse_date(value)) is None:
+        message = f"Unexpected response from the API: unreadable expiry date {value!r}"
+        raise SaEzycheckConnectionError(message)
+    return expiry
+
+
 def _parse_flag(value: str | None) -> bool | None:
     """Parse a YES/NO flag; anything else is unknown."""
     if value is None:
@@ -160,10 +178,11 @@ def parse_payload(raw: str, plate: str) -> SaEzycheckData:
         raise SaEzycheckConnectionError(message)
 
     record = _select_record(vehicles)
-    expiry = _parse_date(_text(record, "expiryDate"))
+    expiry = _parse_expiry(_text(record, "expiryDate"))
     values: dict[str, str | bool | date | None] = {
         key: _text(record, tag) for key, tag in _TEXT_FIELDS.items()
     }
+    values["expiry_date"] = expiry
     values.update(
         {key: _parse_date(_text(record, tag)) for key, tag in _DATE_FIELDS.items()}
     )
@@ -203,6 +222,11 @@ class SaEzycheckClient:
                 response = await self._session.get(API_URL, params={"plate": plate})
                 response.raise_for_status()
                 body = await response.text()
+        except aiohttp.ClientResponseError as err:
+            # aiohttp's own text for this error ends with the request URL, which has
+            # the plate in it.
+            message = f"Error talking to the API: HTTP {err.status}"
+            raise SaEzycheckConnectionError(message) from err
         except (aiohttp.ClientError, TimeoutError) as err:
             message = f"Error talking to the API: {err}"
             raise SaEzycheckConnectionError(message) from err

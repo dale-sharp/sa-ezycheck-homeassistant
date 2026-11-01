@@ -7,7 +7,9 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.sa_ezycheck.api import SaEzycheckConnectionError
@@ -77,6 +79,65 @@ async def test_repair_issue_is_raised_after_consecutive_failures_and_cleared(
     assert registry.async_get_issue(DOMAIN, issue_id) is None
 
 
+async def test_failures_before_a_recovery_do_not_count_towards_the_next_repair_issue(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_fetch: AsyncMock
+) -> None:
+    coordinator = init_integration.runtime_data
+    mock_fetch.side_effect = SaEzycheckConnectionError("down")
+    for _ in range(PERSISTENT_FETCH_FAILURE_THRESHOLD - 1):
+        await coordinator.async_refresh()
+    mock_fetch.side_effect = None
+    await coordinator.async_refresh()
+
+    mock_fetch.side_effect = SaEzycheckConnectionError("down")
+    await coordinator.async_refresh()
+
+    issue_id = f"{ISSUE_PERSISTENT_FETCH_FAILURE}_{init_integration.entry_id}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+async def _fail_until_the_repair_issue_is_raised(
+    hass: HomeAssistant, entry: MockConfigEntry, mock_fetch: AsyncMock
+) -> ir.IssueEntry:
+    mock_fetch.side_effect = SaEzycheckConnectionError("down")
+    for _ in range(PERSISTENT_FETCH_FAILURE_THRESHOLD):
+        await entry.runtime_data.async_refresh()
+    issue = ir.async_get(hass).async_get_issue(
+        DOMAIN, f"{ISSUE_PERSISTENT_FETCH_FAILURE}_{entry.entry_id}"
+    )
+    assert issue is not None
+    return issue
+
+
+async def test_repair_issue_is_cleared_when_a_reloaded_entry_recovers(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_fetch: AsyncMock
+) -> None:
+    # A reload starts a new coordinator that has not counted the earlier failures.
+    issue = await _fail_until_the_repair_issue_is_raised(
+        hass, init_integration, mock_fetch
+    )
+
+    mock_fetch.side_effect = None
+    await hass.config_entries.async_reload(init_integration.entry_id)
+    await hass.async_block_till_done()
+
+    assert init_integration.state is ConfigEntryState.LOADED
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue.issue_id) is None
+
+
+async def test_repair_issue_is_cleared_when_the_entry_is_removed(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_fetch: AsyncMock
+) -> None:
+    issue = await _fail_until_the_repair_issue_is_raised(
+        hass, init_integration, mock_fetch
+    )
+
+    await hass.config_entries.async_remove(init_integration.entry_id)
+    await hass.async_block_till_done()
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue.issue_id) is None
+
+
 async def test_update_fails_with_a_translated_error_when_the_plate_is_refused(
     init_integration: MockConfigEntry, mock_fetch: AsyncMock
 ) -> None:
@@ -86,5 +147,7 @@ async def test_update_fails_with_a_translated_error_when_the_plate_is_refused(
     await coordinator.async_refresh()
 
     assert not coordinator.last_update_success
+    # Once running, a refusal is a failed update that can recover, not a fatal error.
+    assert isinstance(coordinator.last_exception, UpdateFailed)
     assert coordinator.last_exception.translation_key == "invalid_plate"
     assert coordinator.last_exception.translation_placeholders == {"plate": PLATE}

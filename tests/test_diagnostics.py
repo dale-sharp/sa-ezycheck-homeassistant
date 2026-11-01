@@ -16,9 +16,11 @@ from custom_components.sa_ezycheck.diagnostics import (
     async_get_config_entry_diagnostics,
 )
 
-from .conftest import FIRST_DEVICE_ID, PLATE
+from .conftest import FIRST_DEVICE_ID, INVALID_PLATE_RESPONSE, PLATE
 
 if TYPE_CHECKING:
+    from unittest.mock import AsyncMock
+
     from homeassistant.core import HomeAssistant
 
 
@@ -51,6 +53,21 @@ async def test_diagnostics_redacts_the_plate_and_vin(
     assert device["name"] == "**REDACTED**"
     assert device["values"]["masked_vin"] == "**REDACTED**"
     assert result["entry"] == {"title": "**REDACTED**", "plate": "**REDACTED**"}
+
+
+async def test_diagnostics_redacts_the_plate_from_the_last_error(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_fetch: AsyncMock
+) -> None:
+    # The error shown to the user names the plate, so it must not reach the download.
+    mock_fetch.return_value = INVALID_PLATE_RESPONSE
+    await init_integration.runtime_data.async_refresh()
+
+    result = await async_get_config_entry_diagnostics(hass, init_integration)
+
+    last_exception = result["coordinator"]["last_exception"]
+    assert PLATE not in last_exception
+    assert "**REDACTED**" in last_exception
+    assert PLATE not in json.dumps(result)
 
 
 async def test_diagnostics_output_is_json_serialisable(

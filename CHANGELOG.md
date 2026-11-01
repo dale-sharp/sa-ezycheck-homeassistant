@@ -23,6 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] - 2026-11-01
+
+### Fixed
+
+- Diagnostics no longer show the plate in the last error message, and a failed request no
+  longer puts the plate in the error text.
+- A registration expiry date in an unexpected format now fails the update, so the entities
+  show as unavailable, instead of being reported as an unregistered vehicle.
+- A plate the service refuses now stops the setup with an error. It used to be retried
+  every few minutes without end.
+- The repair issue for repeated failed updates now clears after a reload and when the
+  entry is removed. It used to stay until Home Assistant restarted.
+
+---
+
 ## [0.1.0] - 2026-10-25
 
 ### Added
