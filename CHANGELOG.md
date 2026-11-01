@@ -9,18 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- Refreshed the locked development dependencies. Nothing in the shipped integration
-  changes, so there is no version bump.
-  - `homeassistant` 2026.10.3 to 2026.10.4 and `pytest-homeassistant-custom-component`
-    0.13.374 to 0.13.375, so the tests now run against Home Assistant 2026.10.4.
-  - `ruff` 0.17.2 to 0.17.3 and `ty` 0.0.91 to 0.0.95.
-  - Transitive updates, among them `grpcio` 1.85.1, `multidict` 7.2.1, `boto3` and
-    `botocore` 1.43.123, `pytz` and `tzdata` 2026.6, `sentence-stream` 1.4.0, the `nab`
-    packages 0.0.23, and the Bluetooth packages `pyobjc` 13.0 and `winrt` 4.1.0 or
-    10.0.28000.2957.
-
 ---
 
 ## [0.1.1] - 2026-11-01
@@ -35,6 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every few minutes without end.
 - The repair issue for repeated failed updates now clears after a reload and when the
   entry is removed. It used to stay until Home Assistant restarted.
+
+### Changed
+
+- Refreshed the locked development dependencies. Nothing in the shipped integration
+  changes.
+  - `homeassistant` 2026.10.3 to 2026.10.4 and `pytest-homeassistant-custom-component`
+    0.13.374 to 0.13.375, so the tests now run against Home Assistant 2026.10.4.
+  - `ruff` 0.17.2 to 0.17.3 and `ty` 0.0.91 to 0.0.95.
+  - Transitive updates, among them `grpcio` 1.85.1, `multidict` 7.2.1, `boto3` and
+    `botocore` 1.43.123, `pytz` and `tzdata` 2026.6, `sentence-stream` 1.4.0, the `nab`
+    packages 0.0.23, and the Bluetooth packages `pyobjc` 13.0 and `winrt` 4.1.0 or
+    10.0.28000.2957.
 
 ---
 
