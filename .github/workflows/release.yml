@@ -9,15 +9,21 @@ permissions: {}
 
 jobs:
   # Packaging only starts once the commit passes the same checks as a pull request.
-  checks:
-    name: Checks
+  lint:
+    name: Lint
     permissions:
       contents: read   # needed to check out the code
     uses: ./.github/workflows/lint.yml
 
+  validate:
+    name: Validate
+    permissions:
+      contents: read   # needed to check out the code
+    uses: ./.github/workflows/validate.yml
+
   release:
     name: Package and attach release asset
-    needs: checks
+    needs: [lint, validate]
     runs-on: ubuntu-latest
     permissions:
       contents: write   # needed to upload release assets

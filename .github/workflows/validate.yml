@@ -11,6 +11,8 @@ on:
   pull_request:
     branches:
       - main
+  # Called by the release workflow, so a release runs the same checks first.
+  workflow_call:
 
 # Least privilege: read-only contents is enough to check out, including private repos.
 permissions:
