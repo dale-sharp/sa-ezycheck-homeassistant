@@ -4,14 +4,13 @@
 
 from __future__ import annotations
 
+import traceback
 from datetime import date
 from typing import TYPE_CHECKING
-from unittest.mock import Mock
 
 import aiohttp
 import pytest
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from yarl import URL
 
 from custom_components.sa_ezycheck.api import (
     SaEzycheckClient,
@@ -23,7 +22,13 @@ from custom_components.sa_ezycheck.api import (
 )
 from custom_components.sa_ezycheck.const import API_URL, MAIN_DEVICE_ID
 
-from .conftest import INVALID_PLATE_RESPONSE, PLATE, record_xml, response_xml
+from .conftest import (
+    INVALID_PLATE_RESPONSE,
+    PLATE,
+    http_status_error,
+    record_xml,
+    response_xml,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -235,19 +240,41 @@ async def test_fetch_raw_http_error_does_not_include_the_plate(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
     # aiohttp's own text for a failed status ends with the request URL, plate included.
-    request_info = Mock(real_url=URL(f"{API_URL}?plate={PLATE}"))
-    aioclient_mock.get(
-        API_URL,
-        exc=aiohttp.ClientResponseError(
-            request_info, (), status=503, message="Service Unavailable"
-        ),
-    )
+    aioclient_mock.get(API_URL, exc=http_status_error(503))
 
     with pytest.raises(SaEzycheckConnectionError) as error:
         await _client(hass).async_fetch_raw(PLATE)
 
     assert PLATE not in str(error.value)
     assert "503" in str(error.value)
+
+
+async def test_fetch_raw_http_error_keeps_the_plate_out_of_the_traceback(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    # Home Assistant logs the whole chain of a failed update at debug level, and the
+    # original aiohttp error is in it unless the chain is cut.
+    aioclient_mock.get(API_URL, exc=http_status_error())
+
+    with pytest.raises(SaEzycheckConnectionError) as error:
+        await _client(hass).async_fetch_raw(PLATE)
+
+    assert PLATE not in "".join(traceback.format_exception(error.value))
+
+
+async def test_fetch_raw_invalid_url_error_does_not_include_the_plate(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    # aiohttp prints the URL of an invalid one, for instance a malformed redirect.
+    aioclient_mock.get(
+        API_URL, exc=aiohttp.InvalidURL(f"{API_URL}?plate={PLATE}", "bad redirect")
+    )
+
+    with pytest.raises(SaEzycheckConnectionError) as error:
+        await _client(hass).async_fetch_raw(PLATE)
+
+    assert PLATE not in str(error.value)
+    assert PLATE not in "".join(traceback.format_exception(error.value))
 
 
 async def test_fetch_raw_wraps_timeouts(

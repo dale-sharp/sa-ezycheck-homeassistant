@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.sa_ezycheck.api import SaEzycheckConnectionError
 from custom_components.sa_ezycheck.const import (
+    API_URL,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
     ISSUE_PERSISTENT_FETCH_FAILURE,
@@ -21,12 +23,16 @@ from custom_components.sa_ezycheck.const import (
     PERSISTENT_FETCH_FAILURE_THRESHOLD,
 )
 
-from .conftest import FIRST_DEVICE_ID, INVALID_PLATE_RESPONSE, PLATE
+from .conftest import FIRST_DEVICE_ID, INVALID_PLATE_RESPONSE, PLATE, http_status_error
 
 if TYPE_CHECKING:
     from unittest.mock import AsyncMock
 
+    import pytest
     from homeassistant.core import HomeAssistant
+    from pytest_homeassistant_custom_component.test_util.aiohttp import (
+        AiohttpClientMocker,
+    )
 
 
 async def test_refresh_returns_parsed_data(
@@ -151,3 +157,31 @@ async def test_update_fails_with_a_translated_error_when_the_plate_is_refused(
     assert isinstance(coordinator.last_exception, UpdateFailed)
     assert coordinator.last_exception.translation_key == "invalid_plate"
     assert coordinator.last_exception.translation_placeholders == {"plate": PLATE}
+
+
+async def test_a_failed_request_keeps_the_plate_out_of_the_debug_log(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    payload_text: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # The bug report form asks for debug logs, which print the chain of a failed update.
+    aioclient_mock.get(API_URL, text=payload_text)
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert mock_config_entry.state is ConfigEntryState.LOADED
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(API_URL, exc=http_status_error())
+    caplog.set_level(logging.DEBUG, logger="custom_components.sa_ezycheck")
+
+    await mock_config_entry.runtime_data.async_refresh()
+
+    logged = [
+        caplog.handler.format(record)
+        for record in caplog.records
+        if record.name.startswith("custom_components.sa_ezycheck")
+    ]
+    assert any("Full error" in line and "HTTP 503" in line for line in logged)
+    assert not any(PLATE in line for line in logged)

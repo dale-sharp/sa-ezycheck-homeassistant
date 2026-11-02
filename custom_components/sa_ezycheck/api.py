@@ -224,9 +224,14 @@ class SaEzycheckClient:
                 body = await response.text()
         except aiohttp.ClientResponseError as err:
             # aiohttp's own text for this error ends with the request URL, which has
-            # the plate in it.
+            # the plate in it. The error is not chained either, because Home Assistant
+            # prints the chain of a failed update in the debug log.
             message = f"Error talking to the API: HTTP {err.status}"
-            raise SaEzycheckConnectionError(message) from err
+            raise SaEzycheckConnectionError(message) from None
+        except aiohttp.InvalidURL:
+            # The text of this error is the URL, plate included.
+            message = "Error talking to the API: the request URL was not valid"
+            raise SaEzycheckConnectionError(message) from None
         except (aiohttp.ClientError, TimeoutError) as err:
             message = f"Error talking to the API: {err}"
             raise SaEzycheckConnectionError(message) from err
