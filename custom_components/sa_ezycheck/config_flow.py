@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import (
@@ -34,6 +35,7 @@ from .api import (
     SaEzycheckClient,
     SaEzycheckError,
     SaEzycheckInvalidPlateError,
+    SaEzycheckResponseError,
     is_valid_plate,
     normalise_plate,
     parse_payload,
@@ -50,6 +52,8 @@ from .const import (
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _plate_schema(plate: str = "") -> vol.Schema:
@@ -86,6 +90,10 @@ async def _async_validate_plate(hass: HomeAssistant, plate: str) -> str | None:
         await hass.async_add_executor_job(parse_payload, raw, plate)
     except SaEzycheckInvalidPlateError:
         return "invalid_plate"
+    except SaEzycheckResponseError as err:
+        # The form can only say that the reply could not be read; the log says why.
+        _LOGGER.warning("Could not check the plate: %s", err)
+        return "unexpected_response"
     except SaEzycheckError:
         return "cannot_connect"
     return None

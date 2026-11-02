@@ -67,7 +67,11 @@ class SaEzycheckError(Exception):
 
 
 class SaEzycheckConnectionError(SaEzycheckError):
-    """The API could not be reached or returned an unusable response."""
+    """The API could not be reached, or answered with an error status."""
+
+
+class SaEzycheckResponseError(SaEzycheckError):
+    """The API replied, but the reply could not be read."""
 
 
 class SaEzycheckInvalidPlateError(SaEzycheckError):
@@ -128,7 +132,7 @@ def _parse_expiry(value: str | None) -> date | None:
         return None
     if (expiry := _parse_date(value)) is None:
         message = f"Unexpected response from the API: unreadable expiry date {value!r}"
-        raise SaEzycheckConnectionError(message)
+        raise SaEzycheckResponseError(message)
     return expiry
 
 
@@ -168,7 +172,7 @@ def parse_payload(raw: str, plate: str) -> SaEzycheckData:
         root = ET.fromstring(raw)  # noqa: S314
     except ET.ParseError as err:
         message = f"Unexpected response from the API: {err}"
-        raise SaEzycheckConnectionError(message) from err
+        raise SaEzycheckResponseError(message) from err
 
     messages = root.findall("msgs")
     vehicles = [record for record in messages if record.find("expiryDate") is not None]
@@ -177,7 +181,7 @@ def parse_payload(raw: str, plate: str) -> SaEzycheckData:
             if rejection := _text(record, "rst"):
                 raise SaEzycheckInvalidPlateError(rejection)
         message = "Unexpected response from the API: no vehicle in the response"
-        raise SaEzycheckConnectionError(message)
+        raise SaEzycheckResponseError(message)
 
     record, expiry = _select_record(vehicles)
     values: dict[str, str | bool | date | None] = {

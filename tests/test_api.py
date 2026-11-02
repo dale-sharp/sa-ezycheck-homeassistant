@@ -16,6 +16,7 @@ from custom_components.sa_ezycheck.api import (
     SaEzycheckClient,
     SaEzycheckConnectionError,
     SaEzycheckInvalidPlateError,
+    SaEzycheckResponseError,
     is_valid_plate,
     normalise_plate,
     parse_payload,
@@ -134,7 +135,7 @@ def test_parse_payload_treats_unreadable_optional_values_as_unknown() -> None:
 @pytest.mark.parametrize("expiry", ["2026-11-02", "02 Nov 2026", "32/13/2026", ""])
 def test_parse_payload_rejects_an_expiry_date_it_cannot_read(expiry: str) -> None:
     # A changed date format must fail loudly, not look like an unregistered vehicle.
-    with pytest.raises(SaEzycheckConnectionError, match="unreadable expiry date"):
+    with pytest.raises(SaEzycheckResponseError, match="unreadable expiry date"):
         parse_payload(response_xml(record_xml(expiryDate=expiry)), PLATE)
 
 
@@ -152,7 +153,7 @@ def test_parse_payload_rejects_an_unreadable_expiry_date_in_any_record(
     # Which record holds the plate is only known once every date has been read.
     raw = response_xml(*(record_xml(expiryDate=expiry) for expiry in expiries))
 
-    with pytest.raises(SaEzycheckConnectionError, match="unreadable expiry date"):
+    with pytest.raises(SaEzycheckResponseError, match="unreadable expiry date"):
         parse_payload(raw, PLATE)
 
 
@@ -180,7 +181,7 @@ def test_parse_payload_rejects_a_plate_the_service_refuses() -> None:
     ],
 )
 def test_parse_payload_rejects_unexpected_responses(raw: str) -> None:
-    with pytest.raises(SaEzycheckConnectionError):
+    with pytest.raises(SaEzycheckResponseError):
         parse_payload(raw, PLATE)
 
 
