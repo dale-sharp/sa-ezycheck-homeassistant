@@ -125,9 +125,11 @@ automation:
 
 **"The registration check did not accept this plate number"**: check the plate. The service rejects plates it does not recognise.
 
-**Failed to set up, "The registration check no longer accepts the plate"**: the service stopped recognising a plate it accepted before, and setup is not retried. Correct the plate with **Reconfigure**, or reload the entry if you think the service made a mistake.
+**"The registration check replied, but this integration could not read the reply"**: the service answered with something the integration does not understand, such as a date in a new format or a status it has not met before. The Home Assistant log has the reason. If it keeps happening, please open an issue and include that log line.
 
-**Entities unavailable**: the service could not be reached, or answered in a format the integration does not understand, such as a changed date format. After three failed updates in a row a repair issue appears, and it clears itself when an update succeeds.
+**Failed to set up, "The registration check no longer accepts the plate"**: the service stopped recognising a plate it accepted before, so setup stopped instead of retrying. It is tried again only when you reload the entry or restart Home Assistant. Correct the plate with **Reconfigure**, or reload the entry if you think the service made a mistake.
+
+**Entities unavailable**: the service could not be reached, no longer accepts the plate, or answered in a way the integration cannot read, such as a changed date format. The Home Assistant log says which. After three failed updates in a row a repair issue appears, and it clears itself when an update succeeds.
 
 **Debug logging**: add this to `configuration.yaml`, restart, then reproduce the problem:
 
@@ -136,6 +138,8 @@ logger:
   logs:
     custom_components.sa_ezycheck: debug
 ```
+
+**Plates in logs**: logs show the plate, because the entry, device and entity names use it. That is low risk. In South Australia a plate's public listing carries very little that could be tied to a person, and everything this integration shows comes from that same public check. If you would rather not share it, replace the plate before you paste a log. The diagnostics download already has it removed.
 
 **Diagnostics**: on **Settings > Devices & services > SA EzyCheck**, open the three-dot menu of the entry and choose **Download diagnostics**. The plate, title and VIN digits are redacted, including in the last error message.
 
