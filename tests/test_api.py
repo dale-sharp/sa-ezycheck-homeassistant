@@ -138,6 +138,34 @@ def test_parse_payload_rejects_an_expiry_date_it_cannot_read(expiry: str) -> Non
         parse_payload(response_xml(record_xml(expiryDate=expiry)), PLATE)
 
 
+@pytest.mark.parametrize(
+    "expiries",
+    [
+        ["UNREGISTERED", "2026-11-02"],
+        ["2026-11-02", "UNREGISTERED"],
+        ["30/11/2026", "2026-11-02"],
+    ],
+)
+def test_parse_payload_rejects_an_unreadable_expiry_date_in_any_record(
+    expiries: list[str],
+) -> None:
+    # Which record holds the plate is only known once every date has been read.
+    raw = response_xml(*(record_xml(expiryDate=expiry) for expiry in expiries))
+
+    with pytest.raises(SaEzycheckConnectionError, match="unreadable expiry date"):
+        parse_payload(raw, PLATE)
+
+
+@pytest.mark.parametrize(
+    "expiry", ["UNREGISTERED", "unregistered", "Unregistered", " unregistered "]
+)
+def test_parse_payload_reads_unregistered_whatever_its_case(expiry: str) -> None:
+    device = _device(response_xml(record_xml(expiryDate=expiry)))
+
+    assert device.values["expiry_date"] is None
+    assert device.values["registered"] is False
+
+
 def test_parse_payload_rejects_a_plate_the_service_refuses() -> None:
     with pytest.raises(SaEzycheckInvalidPlateError, match="Invalid plate format"):
         parse_payload(INVALID_PLATE_RESPONSE, PLATE)

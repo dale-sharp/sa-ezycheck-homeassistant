@@ -120,10 +120,11 @@ def _parse_date(value: str | None) -> date | None:
 def _parse_expiry(value: str | None) -> date | None:
     """Parse the expiry date; None means the vehicle is unregistered.
 
-    Anything that is neither a date nor the UNREGISTERED marker is an error, so a change
-    in the service's date format is never mistaken for an unregistered vehicle.
+    Anything that is neither a date nor the UNREGISTERED marker (in any case, as with
+    the YES/NO flags) is an error, so a change in the service's date format is never
+    mistaken for an unregistered vehicle.
     """
-    if value == _UNREGISTERED:
+    if value is not None and value.upper() == _UNREGISTERED:
         return None
     if (expiry := _parse_date(value)) is None:
         message = f"Unexpected response from the API: unreadable expiry date {value!r}"
@@ -138,20 +139,21 @@ def _parse_flag(value: str | None) -> bool | None:
     return {"YES": True, "NO": False}.get(value.upper())
 
 
-def _select_record(records: list[Element]) -> Element:
-    """Pick the vehicle that currently holds the plate.
+def _select_record(records: list[Element]) -> tuple[Element, date | None]:
+    """Pick the vehicle that currently holds the plate, with its expiry date.
 
     A plate that moved between vehicles is reported once per vehicle; the registered
-    one has a real expiry date, and the latest date wins when several do.
+    one has a real expiry date, and the latest date wins when several do. The expiry
+    date of every record has to be readable, because a changed format in one of them
+    could hide the registered vehicle.
     """
-    dated = [
-        (expiry, record)
-        for record in records
-        if (expiry := _parse_date(_text(record, "expiryDate"))) is not None
+    candidates = [
+        (record, _parse_expiry(_text(record, "expiryDate"))) for record in records
     ]
+    dated = [(record, expiry) for record, expiry in candidates if expiry is not None]
     if dated:
-        return max(dated, key=lambda pair: pair[0])[1]
-    return records[0]
+        return max(dated, key=lambda pair: pair[1])
+    return candidates[0]
 
 
 def parse_payload(raw: str, plate: str) -> SaEzycheckData:
@@ -177,8 +179,7 @@ def parse_payload(raw: str, plate: str) -> SaEzycheckData:
         message = "Unexpected response from the API: no vehicle in the response"
         raise SaEzycheckConnectionError(message)
 
-    record = _select_record(vehicles)
-    expiry = _parse_expiry(_text(record, "expiryDate"))
+    record, expiry = _select_record(vehicles)
     values: dict[str, str | bool | date | None] = {
         key: _text(record, tag) for key, tag in _TEXT_FIELDS.items()
     }
