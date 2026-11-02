@@ -38,10 +38,14 @@ _TEXT_FIELDS = {
     "ctp_insurer": "ctpInsurer",
     "masked_vin": "maskedVin",
 }
+# Optional dates: one that cannot be read is unknown. The expiry date is read on its own
+# (see ``_parse_expiry``) because it decides whether the vehicle is registered.
 _DATE_FIELDS = {
-    "expiry_date": "expiryDate",
     "inspection_due_date": "inspectionDueDate",
 }
+# What the service reports as the expiry date of a vehicle without a current
+# registration.
+_UNREGISTERED = "UNREGISTERED"
 _FLAG_FIELDS = {
     "inspection_expired": "inspectionExpired",
     "incident": "incidentInd",
@@ -63,7 +67,11 @@ class SaEzycheckError(Exception):
 
 
 class SaEzycheckConnectionError(SaEzycheckError):
-    """The API could not be reached or returned an unusable response."""
+    """The API could not be reached, or answered with an error status."""
+
+
+class SaEzycheckResponseError(SaEzycheckError):
+    """The API replied, but the reply could not be read."""
 
 
 class SaEzycheckInvalidPlateError(SaEzycheckError):
@@ -113,6 +121,21 @@ def _parse_date(value: str | None) -> date | None:
         return None
 
 
+def _parse_expiry(value: str | None) -> date | None:
+    """Parse the expiry date; None means the vehicle is unregistered.
+
+    Anything that is neither a date nor the UNREGISTERED marker (in any case, as with
+    the YES/NO flags) is an error, so a change in the service's date format is never
+    mistaken for an unregistered vehicle.
+    """
+    if value is not None and value.upper() == _UNREGISTERED:
+        return None
+    if (expiry := _parse_date(value)) is None:
+        message = f"Unexpected response from the API: unreadable expiry date {value!r}"
+        raise SaEzycheckResponseError(message)
+    return expiry
+
+
 def _parse_flag(value: str | None) -> bool | None:
     """Parse a YES/NO flag; anything else is unknown."""
     if value is None:
@@ -120,20 +143,21 @@ def _parse_flag(value: str | None) -> bool | None:
     return {"YES": True, "NO": False}.get(value.upper())
 
 
-def _select_record(records: list[Element]) -> Element:
-    """Pick the vehicle that currently holds the plate.
+def _select_record(records: list[Element]) -> tuple[Element, date | None]:
+    """Pick the vehicle that currently holds the plate, with its expiry date.
 
     A plate that moved between vehicles is reported once per vehicle; the registered
-    one has a real expiry date, and the latest date wins when several do.
+    one has a real expiry date, and the latest date wins when several do. The expiry
+    date of every record has to be readable, because a changed format in one of them
+    could hide the registered vehicle.
     """
-    dated = [
-        (expiry, record)
-        for record in records
-        if (expiry := _parse_date(_text(record, "expiryDate"))) is not None
+    candidates = [
+        (record, _parse_expiry(_text(record, "expiryDate"))) for record in records
     ]
+    dated = [(record, expiry) for record, expiry in candidates if expiry is not None]
     if dated:
-        return max(dated, key=lambda pair: pair[0])[1]
-    return records[0]
+        return max(dated, key=lambda pair: pair[1])
+    return candidates[0]
 
 
 def parse_payload(raw: str, plate: str) -> SaEzycheckData:
@@ -148,7 +172,7 @@ def parse_payload(raw: str, plate: str) -> SaEzycheckData:
         root = ET.fromstring(raw)  # noqa: S314
     except ET.ParseError as err:
         message = f"Unexpected response from the API: {err}"
-        raise SaEzycheckConnectionError(message) from err
+        raise SaEzycheckResponseError(message) from err
 
     messages = root.findall("msgs")
     vehicles = [record for record in messages if record.find("expiryDate") is not None]
@@ -157,13 +181,13 @@ def parse_payload(raw: str, plate: str) -> SaEzycheckData:
             if rejection := _text(record, "rst"):
                 raise SaEzycheckInvalidPlateError(rejection)
         message = "Unexpected response from the API: no vehicle in the response"
-        raise SaEzycheckConnectionError(message)
+        raise SaEzycheckResponseError(message)
 
-    record = _select_record(vehicles)
-    expiry = _parse_date(_text(record, "expiryDate"))
+    record, expiry = _select_record(vehicles)
     values: dict[str, str | bool | date | None] = {
         key: _text(record, tag) for key, tag in _TEXT_FIELDS.items()
     }
+    values["expiry_date"] = expiry
     values.update(
         {key: _parse_date(_text(record, tag)) for key, tag in _DATE_FIELDS.items()}
     )
@@ -203,6 +227,16 @@ class SaEzycheckClient:
                 response = await self._session.get(API_URL, params={"plate": plate})
                 response.raise_for_status()
                 body = await response.text()
+        except aiohttp.ClientResponseError as err:
+            # aiohttp's own text for this error ends with the request URL, which has
+            # the plate in it. The error is not chained either, because Home Assistant
+            # prints the chain of a failed update in the debug log.
+            message = f"Error talking to the API: HTTP {err.status}"
+            raise SaEzycheckConnectionError(message) from None
+        except aiohttp.InvalidURL:
+            # The text of this error is the URL, plate included.
+            message = "Error talking to the API: the request URL was not valid"
+            raise SaEzycheckConnectionError(message) from None
         except (aiohttp.ClientError, TimeoutError) as err:
             message = f"Error talking to the API: {err}"
             raise SaEzycheckConnectionError(message) from err

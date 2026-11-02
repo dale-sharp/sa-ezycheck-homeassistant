@@ -7,13 +7,16 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import aiohttp
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from yarl import URL
 
 from custom_components.sa_ezycheck.const import (
+    API_URL,
     CONF_PLATE,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
@@ -60,6 +63,18 @@ _RECORD_DEFAULTS: dict[str, str | None] = {
     "incidentInd": "NO",
     "pendingSuspensionInd": "NO",
 }
+
+
+def http_status_error(status: int = 503) -> aiohttp.ClientResponseError:
+    """
+    Return the error aiohttp raises for a failed status.
+
+    Its text ends with the request URL, plate included, as it does for real.
+    """
+    request_info = Mock(real_url=URL(f"{API_URL}?plate={PLATE}"))
+    return aiohttp.ClientResponseError(
+        request_info, (), status=status, message="Service Unavailable"
+    )
 
 
 def record_xml(**fields: str | None) -> str:

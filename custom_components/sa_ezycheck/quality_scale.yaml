@@ -65,12 +65,14 @@ rules:
     status: done
     comment: >-
       The config flow checks the plate format and then asks the service to confirm it
-      before creating the entry.
+      before creating the entry. It tells a refused plate, an unreachable service and a
+      reply it cannot read apart.
   test-before-setup:
     status: done
     comment: >-
       async_config_entry_first_refresh raises ConfigEntryNotReady when the service cannot
-      be reached.
+      be reached or its reply cannot be read, so Home Assistant retries the setup. A
+      plate the service refuses raises ConfigEntryError, so the setup stops.
   unique-config-entry:
     status: done
     comment: The normalised plate is the unique ID, so a vehicle can be added only once.
@@ -119,7 +121,9 @@ rules:
       manufacturer and the body type as the model.
   diagnostics:
     status: done
-    comment: Diagnostics redact the plate, the entry title, the device name and the VIN digits.
+    comment: >-
+      Diagnostics redact the plate, the entry title, the device name and the VIN digits,
+      and the plate in the last error message.
   discovery:
     status: exempt
     comment: The source is a fixed public endpoint; there is nothing to discover on the network.
@@ -173,7 +177,11 @@ rules:
     comment: The reconfigure flow changes the plate without removing the entry.
   repair-issues:
     status: done
-    comment: A repair issue is raised after three consecutive failed updates and cleared on success.
+    comment: >-
+      A repair issue is raised after three consecutive failed updates. The next
+      successful update clears it, so it does not outlive a reload, and removing the
+      entry clears it too. It is not persistent, which keeps the plate in its text out of
+      the diagnostics download.
   stale-devices:
     status: exempt
     comment: >-

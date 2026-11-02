@@ -43,7 +43,7 @@ body:
   - type: textarea
     attributes:
       label: "Debug logs"
-      description: "Enable debug logging for `custom_components.sa_ezycheck` (Settings > Devices & Services > this integration > ... menu > Enable debug logging, reproduce the issue, then disable it to download the log). Paste the relevant excerpt here - include enough context to see the failure occur, not just a single line."
+      description: "Enable debug logging for `custom_components.sa_ezycheck` (Settings > Devices & Services > this integration > ... menu > Enable debug logging, reproduce the issue, then disable it to download the log). Paste the relevant excerpt here - include enough context to see the failure occur, not just a single line. The log shows your plate. A South Australian plate's public listing carries very little that could be tied to a person, so leaving it in is fine; replace it if you would rather not share it."
       render: text
     validations:
       required: true

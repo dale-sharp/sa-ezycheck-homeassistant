@@ -20,7 +20,7 @@ from custom_components.sa_ezycheck.binary_sensor import (
 from custom_components.sa_ezycheck.const import device_identifier
 from custom_components.sa_ezycheck.sensor import SENSORS, SaEzycheckSensor
 
-from .conftest import FETCH_TARGET, FIRST_DEVICE_ID, PLATE
+from .conftest import FETCH_TARGET, FIRST_DEVICE_ID, INVALID_PLATE_RESPONSE, PLATE
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -54,6 +54,19 @@ async def test_setup_retries_when_the_first_refresh_fails(
         await hass.async_block_till_done()
 
     assert mock_config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+async def test_setup_stops_instead_of_retrying_when_the_plate_is_rejected(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    # Retrying cannot fix a plate the service refuses, so setup must not loop.
+    mock_config_entry.add_to_hass(hass)
+    with patch(FETCH_TARGET, return_value=INVALID_PLATE_RESPONSE):
+        await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert mock_config_entry.state is ConfigEntryState.SETUP_ERROR
+    assert mock_config_entry.error_reason_translation_key == "invalid_plate"
 
 
 async def test_entities_become_unavailable_when_updates_fail(
