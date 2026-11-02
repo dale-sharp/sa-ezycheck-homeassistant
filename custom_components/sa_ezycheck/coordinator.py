@@ -104,6 +104,9 @@ class SaEzycheckCoordinator(DataUpdateCoordinator[SaEzycheckData]):
                 DOMAIN,
                 persistent_fetch_failure_issue_id(self.config_entry.entry_id),
                 is_fixable=False,
+                # Not persistent, so Home Assistant leaves the placeholders out of the
+                # diagnostics download. The entry title in them is the plate.
+                is_persistent=False,
                 severity=ir.IssueSeverity.WARNING,
                 translation_key=ISSUE_PERSISTENT_FETCH_FAILURE,
                 translation_placeholders={

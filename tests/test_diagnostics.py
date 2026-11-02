@@ -8,9 +8,16 @@ import json
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.sa_ezycheck.const import DOMAIN
+from custom_components.sa_ezycheck.api import SaEzycheckConnectionError
+from custom_components.sa_ezycheck.const import (
+    DOMAIN,
+    ISSUE_PERSISTENT_FETCH_FAILURE,
+    PERSISTENT_FETCH_FAILURE_THRESHOLD,
+)
 from custom_components.sa_ezycheck.diagnostics import (
     SAMPLE_DEVICES,
     async_get_config_entry_diagnostics,
@@ -68,6 +75,33 @@ async def test_diagnostics_redacts_the_plate_from_the_last_error(
     assert PLATE not in last_exception
     assert "**REDACTED**" in last_exception
     assert PLATE not in json.dumps(result)
+
+
+async def test_diagnostics_download_leaves_the_plate_out_while_a_repair_issue_is_open(
+    hass: HomeAssistant,
+    hass_client,
+    init_integration: MockConfigEntry,
+    mock_fetch: AsyncMock,
+) -> None:
+    # Core adds the repair issues of the domain to the download. The text of this one
+    # names the entry by its title, which is the plate, so only an issue that is not
+    # persistent keeps the plate out.
+    mock_fetch.side_effect = SaEzycheckConnectionError("down")
+    for _ in range(PERSISTENT_FETCH_FAILURE_THRESHOLD):
+        await init_integration.runtime_data.async_refresh()
+    issue_id = f"{ISSUE_PERSISTENT_FETCH_FAILURE}_{init_integration.entry_id}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
+    assert await async_setup_component(hass, "diagnostics", {})
+    client = await hass_client()
+
+    response = await client.get(
+        f"/api/diagnostics/config_entry/{init_integration.entry_id}"
+    )
+
+    assert response.status == 200
+    download = await response.json()
+    assert [issue["issue_id"] for issue in download["issues"]] == [issue_id]
+    assert PLATE not in json.dumps(download)
 
 
 async def test_diagnostics_output_is_json_serialisable(
