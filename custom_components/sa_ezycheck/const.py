@@ -30,6 +30,11 @@ ISSUE_PERSISTENT_FETCH_FAILURE: Final[str] = "persistent_fetch_failure"
 MAIN_DEVICE_ID: Final[str] = "main"
 
 
+def persistent_fetch_failure_issue_id(entry_id: str) -> str:
+    """Return the ID of the repair issue for an entry whose updates keep failing."""
+    return f"{ISSUE_PERSISTENT_FETCH_FAILURE}_{entry_id}"
+
+
 def device_identifier(entry_id: str, device_id: str) -> tuple[str, str]:
     """Return the device-registry identifier for a device of a config entry."""
     return (DOMAIN, f"{entry_id}_{device_id}")

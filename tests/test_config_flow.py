@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
@@ -25,7 +26,14 @@ from custom_components.sa_ezycheck.const import (
     device_identifier,
 )
 
-from .conftest import FETCH_TARGET, INVALID_PLATE_RESPONSE, PLATE, USER_INPUT
+from .conftest import (
+    FETCH_TARGET,
+    INVALID_PLATE_RESPONSE,
+    PLATE,
+    USER_INPUT,
+    record_xml,
+    response_xml,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigFlowResult
@@ -110,6 +118,34 @@ async def test_user_flow_reports_cannot_connect_and_recovers(
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
+async def test_user_flow_reports_an_unreadable_response_and_recovers(
+    hass: HomeAssistant,
+    mock_fetch: AsyncMock,
+    payload_text: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # The service answered, so this is no network problem, and the reason is logged
+    # for the user and for a bug report.
+    caplog.set_level(logging.WARNING, logger="custom_components.sa_ezycheck")
+    mock_fetch.return_value = response_xml(record_xml(expiryDate="CANCELLED"))
+    result = await _start_user_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=USER_INPUT
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "unexpected_response"}
+    assert "unreadable expiry date 'CANCELLED'" in caplog.text
+    assert PLATE not in caplog.text
+
+    mock_fetch.return_value = payload_text
+    with patch(SETUP_ENTRY, return_value=True):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=USER_INPUT
+        )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
 async def test_user_flow_aborts_when_the_plate_is_already_configured(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry, mock_fetch: AsyncMock
 ) -> None:
@@ -170,6 +206,11 @@ async def test_reconfigure_flow_aborts_when_another_entry_has_the_plate(
     [
         (SaEzycheckConnectionError("down"), None, "cannot_connect"),
         (None, INVALID_PLATE_RESPONSE, "invalid_plate"),
+        (
+            None,
+            response_xml(record_xml(expiryDate="CANCELLED")),
+            "unexpected_response",
+        ),
     ],
 )
 async def test_reconfigure_flow_reports_errors(
