@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
+import traceback
 from datetime import date
 from typing import TYPE_CHECKING
 
+import aiohttp
 import pytest
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -14,13 +16,20 @@ from custom_components.sa_ezycheck.api import (
     SaEzycheckClient,
     SaEzycheckConnectionError,
     SaEzycheckInvalidPlateError,
+    SaEzycheckResponseError,
     is_valid_plate,
     normalise_plate,
     parse_payload,
 )
 from custom_components.sa_ezycheck.const import API_URL, MAIN_DEVICE_ID
 
-from .conftest import INVALID_PLATE_RESPONSE, PLATE, record_xml, response_xml
+from .conftest import (
+    INVALID_PLATE_RESPONSE,
+    PLATE,
+    http_status_error,
+    record_xml,
+    response_xml,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -110,17 +119,52 @@ def test_parse_payload_reports_an_unregistered_vehicle() -> None:
     assert device.values["registered"] is False
 
 
-def test_parse_payload_treats_unreadable_dates_and_flags_as_unknown() -> None:
+def test_parse_payload_treats_unreadable_optional_values_as_unknown() -> None:
     device = _device(
         response_xml(
-            record_xml(expiryDate="32/13/2026", incidentInd="MAYBE", maskedVin=None)
+            record_xml(inspectionDueDate="SOON", incidentInd="MAYBE", maskedVin=None)
         )
     )
 
-    assert device.values["expiry_date"] is None
+    assert device.values["inspection_due_date"] is None
     assert device.values["incident"] is None
     assert device.values["pending_suspension"] is False
     assert device.values["masked_vin"] is None
+
+
+@pytest.mark.parametrize("expiry", ["2026-11-02", "02 Nov 2026", "32/13/2026", ""])
+def test_parse_payload_rejects_an_expiry_date_it_cannot_read(expiry: str) -> None:
+    # A changed date format must fail loudly, not look like an unregistered vehicle.
+    with pytest.raises(SaEzycheckResponseError, match="unreadable expiry date"):
+        parse_payload(response_xml(record_xml(expiryDate=expiry)), PLATE)
+
+
+@pytest.mark.parametrize(
+    "expiries",
+    [
+        ["UNREGISTERED", "2026-11-02"],
+        ["2026-11-02", "UNREGISTERED"],
+        ["30/11/2026", "2026-11-02"],
+    ],
+)
+def test_parse_payload_rejects_an_unreadable_expiry_date_in_any_record(
+    expiries: list[str],
+) -> None:
+    # Which record holds the plate is only known once every date has been read.
+    raw = response_xml(*(record_xml(expiryDate=expiry) for expiry in expiries))
+
+    with pytest.raises(SaEzycheckResponseError, match="unreadable expiry date"):
+        parse_payload(raw, PLATE)
+
+
+@pytest.mark.parametrize(
+    "expiry", ["UNREGISTERED", "unregistered", "Unregistered", " unregistered "]
+)
+def test_parse_payload_reads_unregistered_whatever_its_case(expiry: str) -> None:
+    device = _device(response_xml(record_xml(expiryDate=expiry)))
+
+    assert device.values["expiry_date"] is None
+    assert device.values["registered"] is False
 
 
 def test_parse_payload_rejects_a_plate_the_service_refuses() -> None:
@@ -137,7 +181,7 @@ def test_parse_payload_rejects_a_plate_the_service_refuses() -> None:
     ],
 )
 def test_parse_payload_rejects_unexpected_responses(raw: str) -> None:
-    with pytest.raises(SaEzycheckConnectionError):
+    with pytest.raises(SaEzycheckResponseError):
         parse_payload(raw, PLATE)
 
 
@@ -219,6 +263,47 @@ async def test_fetch_raw_wraps_http_errors(
 
     with pytest.raises(SaEzycheckConnectionError):
         await _client(hass).async_fetch_raw(PLATE)
+
+
+async def test_fetch_raw_http_error_does_not_include_the_plate(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    # aiohttp's own text for a failed status ends with the request URL, plate included.
+    aioclient_mock.get(API_URL, exc=http_status_error(503))
+
+    with pytest.raises(SaEzycheckConnectionError) as error:
+        await _client(hass).async_fetch_raw(PLATE)
+
+    assert PLATE not in str(error.value)
+    assert "503" in str(error.value)
+
+
+async def test_fetch_raw_http_error_keeps_the_plate_out_of_the_traceback(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    # Home Assistant logs the whole chain of a failed update at debug level, and the
+    # original aiohttp error is in it unless the chain is cut.
+    aioclient_mock.get(API_URL, exc=http_status_error())
+
+    with pytest.raises(SaEzycheckConnectionError) as error:
+        await _client(hass).async_fetch_raw(PLATE)
+
+    assert PLATE not in "".join(traceback.format_exception(error.value))
+
+
+async def test_fetch_raw_invalid_url_error_does_not_include_the_plate(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    # aiohttp prints the URL of an invalid one, for instance a malformed redirect.
+    aioclient_mock.get(
+        API_URL, exc=aiohttp.InvalidURL(f"{API_URL}?plate={PLATE}", "bad redirect")
+    )
+
+    with pytest.raises(SaEzycheckConnectionError) as error:
+        await _client(hass).async_fetch_raw(PLATE)
+
+    assert PLATE not in str(error.value)
+    assert PLATE not in "".join(traceback.format_exception(error.value))
 
 
 async def test_fetch_raw_wraps_timeouts(
