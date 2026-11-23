@@ -28,7 +28,8 @@
     },
     "error": {
       "cannot_connect": "Could not connect to the registration check service. Check your network connection and try again.",
-      "invalid_plate": "The registration check did not accept this plate number. Check it and try again."
+      "invalid_plate": "The registration check did not accept this plate number. Check it and try again.",
+      "unexpected_response": "The registration check replied, but this integration could not read the reply. Try again later. If it keeps happening, the service may have changed; the Home Assistant log has details."
     }
   },
   "options": {
@@ -50,13 +51,13 @@
       "message": "Could not fetch data from the registration check service: {error}"
     },
     "invalid_plate": {
-      "message": "The registration check no longer accepts the plate {plate}."
+      "message": "The registration check no longer accepts the plate {plate}. Use Reconfigure to correct the plate, or reload the entry to try again."
     }
   },
   "issues": {
     "persistent_fetch_failure": {
-      "title": "SA EzyCheck is unreachable",
-      "description": "SA EzyCheck has failed to fetch data for {threshold} consecutive attempts for \"{entry_title}\". This may be a temporary outage or a network problem. No action is needed if it resolves on its own; if it persists, check your network connection and the service's status."
+      "title": "SA EzyCheck is not updating",
+      "description": "SA EzyCheck has failed to update \"{entry_title}\" {threshold} times in a row. The registration check may be down, may no longer accept the plate, or may have changed how it answers; the Home Assistant log says which. No action is needed if it clears on its own. If it keeps failing and the log says the answer could not be read, please open an issue on GitHub."
     }
   },
   "entity": {

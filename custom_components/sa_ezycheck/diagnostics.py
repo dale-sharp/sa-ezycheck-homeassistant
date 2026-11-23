@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 
 from .const import CONF_PLATE
 
@@ -20,6 +21,13 @@ if TYPE_CHECKING:
 # are attached to public issue reports.
 TO_REDACT = {CONF_PLATE, "name", "masked_vin"}
 SAMPLE_DEVICES = 10
+
+
+def _redact_plate(text: str, plate: str | None) -> str:
+    """Hide the plate in free text, which ``async_redact_data`` does not cover."""
+    if not plate:
+        return text
+    return re.sub(re.escape(plate), REDACTED, text, flags=re.IGNORECASE)
 
 
 async def async_get_config_entry_diagnostics(
@@ -35,7 +43,10 @@ async def async_get_config_entry_diagnostics(
         "options": dict(entry.options),
         "coordinator": {
             "last_update_success": coordinator.last_update_success,
-            "last_exception": str(coordinator.last_exception)
+            # The error text can name the plate, so it is redacted as well.
+            "last_exception": _redact_plate(
+                str(coordinator.last_exception), entry.data.get(CONF_PLATE)
+            )
             if coordinator.last_exception
             else None,
             "update_interval_seconds": coordinator.update_interval.total_seconds()

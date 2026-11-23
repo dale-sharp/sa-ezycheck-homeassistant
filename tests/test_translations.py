@@ -94,3 +94,4 @@ def test_config_flow_errors_are_translated() -> None:
 
     assert errors["cannot_connect"]
     assert errors["invalid_plate"]
+    assert errors["unexpected_response"]

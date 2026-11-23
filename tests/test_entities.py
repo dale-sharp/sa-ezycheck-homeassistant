@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNKNOWN
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
@@ -116,6 +116,22 @@ async def test_unregistered_vehicle_has_no_expiry(
     ):
         entity_id = _entity_id(hass, init_integration, platform, key)
         assert _state(hass, entity_id).state == state, key
+
+
+async def test_entities_become_unavailable_when_the_expiry_date_cannot_be_read(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_fetch: AsyncMock
+) -> None:
+    mock_fetch.return_value = response_xml(record_xml(expiryDate="2026-11-02"))
+    await init_integration.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    for platform, key in (
+        ("sensor", "expiry_date"),
+        ("sensor", "days_until_expiry"),
+        ("binary_sensor", "registered"),
+    ):
+        entity_id = _entity_id(hass, init_integration, platform, key)
+        assert _state(hass, entity_id).state == STATE_UNAVAILABLE, key
 
 
 async def test_days_until_expiry_updates_at_midnight_without_a_new_poll(
